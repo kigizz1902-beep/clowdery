@@ -1,28 +1,30 @@
 "use strict";
   /* ========================================================================
-     CONFIG — Google Maps (F01)
-     아래에 Google Maps JavaScript API 키를 넣으면 홈 지도가 실제 구글맵으로
-     렌더됩니다. 비워두면 좌표 기반 플레이스홀더 지도로 자동 폴백합니다.
-     키 발급: https://console.cloud.google.com → Maps JavaScript API 활성화
-     (선택) Places API 를 켜면 검색이 구글 장소 자동완성으로 확장됩니다.
+     CONFIG — Placeholder map only
+     이 앱은 API 키 없이 동작하는 로컬 맵으로 변경되었습니다.
+     실제 Kakao/Google Maps API 호출 없이, 내 위치 기준 좌표 기반 플레이스홀더
+     맵으로만 렌더링됩니다.
   ======================================================================== */
-  const GOOGLE_MAPS_API_KEY = ""; // 예: "AIza...."
-  const USE_GOOGLE_MAPS = () => !!GOOGLE_MAPS_API_KEY;
+  const KAKAO_JS_KEY = "";
+  const USE_KAKAO_MAPS = () => false;
 
-  let _gmapsPromise = null;
-  function loadGoogleMaps() {
-    if (window.google && window.google.maps) return Promise.resolve(window.google);
-    if (_gmapsPromise) return _gmapsPromise;
-    _gmapsPromise = new Promise((resolve, reject) => {
-      const cbName = "__clowderyGmapsReady";
-      window[cbName] = () => resolve(window.google);
+  let _kakaoPromise = null;
+  function loadKakaoMaps() {
+    if (window.kakao && window.kakao.maps && window.kakao.maps.Map) return Promise.resolve(window.kakao);
+    if (_kakaoPromise) return _kakaoPromise;
+    _kakaoPromise = new Promise((resolve, reject) => {
       const s = document.createElement("script");
-      s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}&libraries=places&callback=${cbName}&loading=async`;
+      // autoload=false → onload 후 kakao.maps.load()로 명시적 초기화
+      s.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(KAKAO_JS_KEY)}&libraries=services&autoload=false`;
       s.async = true;
-      s.onerror = () => reject(new Error("Google Maps 로드 실패"));
+      s.onload = () => {
+        if (window.kakao && window.kakao.maps) window.kakao.maps.load(() => resolve(window.kakao));
+        else reject(new Error("Kakao Maps 초기화 실패"));
+      };
+      s.onerror = () => reject(new Error("Kakao Maps 로드 실패"));
       document.head.appendChild(s);
     });
-    return _gmapsPromise;
+    return _kakaoPromise;
   }
 
   /* ========================================================================
@@ -41,6 +43,15 @@
     if (diff < 3600) return Math.floor(diff / 60) + "분 전";
     if (diff < 86400) return Math.floor(diff / 3600) + "시간 전";
     return Math.floor(diff / 86400) + "일 전";
+  }
+
+  // 빈 화면 컴포넌트 — 이모지 + 제목 + (선택) 보조 문구
+  function emptyState(emoji, title, sub) {
+    return `<li class="empty-state">
+      <div class="empty-state__emoji">${emoji}</div>
+      <div class="empty-state__title">${esc(title)}</div>
+      ${sub ? `<div class="empty-state__sub">${esc(sub)}</div>` : ""}
+    </li>`;
   }
 
   let _toastTimer;
@@ -81,6 +92,23 @@
   const CAT_EMOJI = (type) => (CATS[type] ? CATS[type].emoji : "🐱");
 
   const CATEGORIES = ["맛집", "카페", "전시", "공연", "팝업", "쇼핑", "빈티지", "서점", "야외", "클래스"];
+
+  // 카테고리별 이모지 + 컬러 (활기찬 컬러 시스템) — 배경 틴트 + 대비 글자색(AA)
+  const CATEGORY_META = {
+    "맛집":   { emoji: "🍜", bg: "#FFE3D6", fg: "#B24012" },
+    "카페":   { emoji: "☕", bg: "#F1E6D3", fg: "#8A5A22" },
+    "전시":   { emoji: "🖼️", bg: "#E3E8FF", fg: "#3B45BF" },
+    "공연":   { emoji: "🎭", bg: "#FBE1EC", fg: "#B23A6B" },
+    "팝업":   { emoji: "🎉", bg: "#FFEBC7", fg: "#9A6712" },
+    "쇼핑":   { emoji: "🛍️", bg: "#FCE0F1", fg: "#B23A82" },
+    "빈티지": { emoji: "🧵", bg: "#ECE5D4", fg: "#6E5B2E" },
+    "서점":   { emoji: "📚", bg: "#DEF1E9", fg: "#1E7A5E" },
+    "야외":   { emoji: "🌳", bg: "#E2F0DA", fg: "#3B7A2E" },
+    "클래스": { emoji: "🎨", bg: "#E7E7FB", fg: "#4A46B0" },
+  };
+  const catEmoji = (cat) => (CATEGORY_META[cat] ? CATEGORY_META[cat].emoji : "📍");
+  // 카테고리 태그 HTML (모노크롬 — 회색 칩, 이모지로 구분)
+  const catTag = (cat) => `<span class="tag" style="background:#EDEDED;color:#1A1A1A">${catEmoji(cat)} ${esc(cat)}</span>`;
 
   // 장소 예시 이미지 (이미지/ 폴더) — 카테고리/장소 성격에 맞춰 매핑
   const PLACE_PHOTOS = {

@@ -2,7 +2,7 @@
    8. 카테고리 / 리액션 칩 (badge)
 -------------------------------------------------------------------------- */
 .record-card__reactions button {
-  border: 1px solid var(--color-hairline);
+  border: var(--hairline-w) solid var(--color-hairline);
   background: var(--color-surface);
   color: var(--color-ink);
   font-size: var(--fs-caption);
@@ -26,14 +26,15 @@
 
 #place-detail__hero {
   position: relative;
-  height: 200px;
+  height: 320px;
   overflow: hidden;
-  border-radius: var(--r-lg);
+  border-radius: var(--r-xl);
   background: var(--color-surface-alt);
-  border: 1px solid var(--color-hairline);
-  margin: var(--sp-lg) 0;
+  border: var(--hairline-w) solid var(--color-hairline);
+  margin: var(--sp-lg) 0 var(--sp-xl);
   display: grid; place-items: center;
   color: var(--color-faint); font-size: var(--fs-caption);
+  box-shadow: var(--shadow-1);
 }
 #place-detail__hero::after { content: "대표 이미지"; }
 #place-detail__hero:has(img)::after { content: none; }   /* 사진 있으면 자리표시 제거 */
@@ -45,13 +46,17 @@
 
 /* 추천 이유 — 오렌지 강조선(발자국 액센트) */
 #place-detail__reason {
-  padding: var(--sp-md) var(--sp-lg);
+  padding: var(--sp-lg);
   background: var(--color-surface);
-  border-left: 3px solid var(--color-accent);
-  border-radius: 0 var(--r-sm) var(--r-sm) 0;
-  color: var(--color-body);
-  font-size: var(--fs-body);
+  border-left: 4px solid var(--color-accent);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  color: var(--color-heading);
+  font-size: var(--fs-feature);
+  font-weight: var(--fw-semi);
+  line-height: 1.4;
+  letter-spacing: -0.01em;
   margin-bottom: var(--sp-lg);
+  box-shadow: var(--shadow-1);
 }
 #place-detail__reason:empty::after {
   content: "추천 이유가 여기에 표시됩니다";
@@ -63,7 +68,7 @@
   margin-bottom: var(--sp-lg);
   padding: var(--sp-lg);
   background: var(--color-surface);
-  border: 1px solid var(--color-hairline);
+  border: var(--hairline-w) solid var(--color-hairline);
   border-radius: var(--r-lg);
   min-height: 72px;
 }
@@ -83,7 +88,7 @@
 #write__form { display: flex; flex-direction: column; gap: var(--sp-lg); }
 
 #write__form fieldset {
-  border: 1px solid var(--color-hairline);
+  border: var(--hairline-w) solid var(--color-hairline);
   border-radius: var(--r-sm);
   padding: var(--sp-lg);
   min-height: 56px;
@@ -96,7 +101,7 @@
 }
 
 #write__photo-field {
-  border: 1px dashed var(--color-hairline);
+  border: var(--hairline-w) dashed var(--color-hairline);
   border-radius: var(--r-sm);
   padding: var(--sp-lg);
   background: var(--color-surface-alt);
@@ -119,7 +124,7 @@
   gap: var(--sp-md);
 }
 
-/* 비어있는 리스트 자리표시 */
+/* 비어있는 리스트 자리표시 (JS 미주입 시 폴백) */
 #recommend__list:empty::after,
 #my-records__list:empty::after,
 #search__result-list:empty::after,
@@ -131,9 +136,33 @@
   text-align: center;
   color: var(--color-faint);
   background: var(--color-surface);
-  border: 1px solid var(--color-hairline);
+  border: var(--hairline-w) solid var(--color-hairline);
   border-radius: var(--r-lg);
 }
+
+/* 빈 화면 컴포넌트 (emptyState 헬퍼) */
+.empty-state {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: var(--sp-xxl) var(--sp-lg);
+  background: var(--color-surface);
+  border: var(--hairline-w) dashed var(--color-hairline);
+  border-radius: var(--r-lg);
+}
+.empty-state__emoji {
+  font-size: 34px;
+  width: 64px; height: 64px;
+  display: grid; place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--color-primary-tint);
+  margin-bottom: var(--sp-xs);
+}
+.empty-state__title { font-weight: var(--fw-semi); color: var(--color-ink); font-size: var(--fs-body); }
+.empty-state__sub { font-size: var(--fs-caption); color: var(--color-muted); line-height: 1.5; }
 
 /* 필터 바 (탭 / 그룹 선택) */
 #feed__clowder-tabs,
@@ -153,7 +182,7 @@
 
 .record-card {
   background: var(--color-surface);
-  border: 1px solid var(--color-hairline);
+  border: var(--hairline-w) solid var(--color-hairline);
   border-radius: var(--r-lg);
   padding: var(--sp-lg);
   display: flex;
@@ -162,14 +191,23 @@
 }
 .record-card__header { min-height: 32px; }
 .record-card__photo {
-  height: 200px;
+  height: 300px;
+  /* 카드 좌우 여백(--sp-xl)을 상쇄해 풀블리드 사진 */
+  margin: 0 calc(-1 * var(--sp-xl));
   background: var(--color-surface-alt);
-  border-radius: var(--r-md);
   display: grid; place-items: center;
   color: var(--color-faint); font-size: var(--fs-caption);
+  overflow: hidden;
 }
 .record-card__photo::after { content: "사용자 사진"; }
-.record-card__oneline { color: var(--color-ink); }
+.record-card__photo img { border-radius: 0 !important; }
+.record-card__oneline {
+  color: var(--color-heading);
+  font-size: var(--fs-feature);
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+}
 .record-card__reactions { display: flex; flex-wrap: wrap; gap: var(--sp-sm); }
 .record-card__messages { min-height: 24px; }
 
@@ -182,7 +220,7 @@
 #profile__stats {
   padding: var(--sp-lg);
   background: var(--color-surface);
-  border: 1px solid var(--color-hairline);
+  border: var(--hairline-w) solid var(--color-hairline);
   border-radius: var(--r-lg);
   min-height: 72px;
   margin-bottom: var(--sp-md);
@@ -212,7 +250,7 @@
   font-size: var(--fs-body);
   font-weight: var(--fw-med);
   padding: var(--sp-lg) var(--sp-md);
-  border-bottom: 1px solid var(--color-hairline);
+  border-bottom: var(--hairline-w) solid var(--color-hairline);
   transition: background var(--motion-fast) var(--ease-standard);
 }
 #profile__settings button:hover { background: var(--color-surface-alt); }
@@ -224,7 +262,7 @@
 #share-landing__photo {
   height: 240px;
   background: var(--color-surface-alt);
-  border: 1px solid var(--color-hairline);
+  border: var(--hairline-w) solid var(--color-hairline);
   border-radius: var(--r-lg);
   margin: var(--sp-lg) 0;
   display: grid; place-items: center;
@@ -261,11 +299,26 @@
   flex-direction: column;
   gap: var(--sp-md);
 }
+#completion-modal__emoji {
+  align-self: center;
+  font-size: 36px;
+  width: 68px; height: 68px;
+  display: grid; place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--color-primary-tint);
+  margin-bottom: var(--sp-xs);
+}
 #completion-modal__title {
   font-size: var(--fs-feature);
   font-weight: var(--fw-bold);
   color: var(--color-primary);
-  margin-bottom: var(--sp-xs);
+  text-align: center;
+}
+#completion-modal__sub {
+  color: var(--color-muted);
+  font-size: var(--fs-body);
+  text-align: center;
+  margin-bottom: var(--sp-sm);
 }
 
 
@@ -283,7 +336,7 @@
   z-index: 100;
   display: flex;
   background: var(--color-canvas);
-  border-top: 1px solid var(--color-hairline);
+  border-top: var(--hairline-w) solid var(--color-hairline);
   padding-bottom: env(safe-area-inset-bottom);
 }
 
@@ -365,7 +418,7 @@ body.focus-mode #app-main { padding-bottom: var(--sp-xl); }
    19. 공용 동적 요소 — 칩 / 태그 / 아바타 / 메타
 -------------------------------------------------------------------------- */
 .chip {
-  border: 1px solid var(--color-hairline);
+  border: var(--hairline-w) solid var(--color-hairline);
   background: var(--color-surface);
   color: var(--color-ink);
   font-size: var(--fs-caption);
@@ -380,7 +433,7 @@ body.focus-mode #app-main { padding-bottom: var(--sp-xl); }
 .chip.is-active {
   background: var(--color-primary);
   border-color: var(--color-primary);
-  color: var(--color-on-dark);
+  color: var(--color-on-primary);
 }
 
 .tag {
@@ -390,7 +443,7 @@ body.focus-mode #app-main { padding-bottom: var(--sp-xl); }
   padding: 3px 10px;
   border-radius: var(--r-pill);
   background: var(--color-primary-tint);
-  color: var(--color-primary);
+  color: var(--color-primary-deep);
 }
 .tag--mint { background: #E3F5EF; color: #1E7A63; }
 .tag--pink { background: #FBEAF0; color: #A64D68; }

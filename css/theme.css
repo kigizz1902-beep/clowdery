@@ -1,37 +1,67 @@
 /* --------------------------------------------------------------------------
    21. 장소 카드 (홈 리스트 / 추천 / 검색 / 일지)
 -------------------------------------------------------------------------- */
+/* 에디토리얼 카드 — 상단 대형 사진 + 사진 위 컬러 태그 오버레이 */
 .place-card {
   display: flex;
-  gap: var(--sp-md);
-  padding: var(--sp-md);
+  flex-direction: column;
   background: var(--color-surface);
-  border: 1px solid var(--color-hairline);
-  border-radius: var(--r-lg);
+  min-width: 0;
+  border: var(--hairline-w) solid var(--color-hairline);
+  border-radius: var(--r-xl);
+  overflow: hidden;
   cursor: pointer;
   text-align: left;
   width: 100%;
-  transition: border-color var(--motion-fast) var(--ease-standard);
+  transition: transform var(--motion-fast) var(--ease-standard),
+              box-shadow var(--motion-standard) var(--ease-standard);
 }
-.place-card:hover { border-color: var(--color-primary); }
+.place-card:hover { transform: translateY(-3px); }
 .place-card__thumb {
-  width: 64px; height: 64px;
-  border-radius: var(--r-md);
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 2;
   background: var(--color-surface-alt);
   background-size: cover; background-position: center;
   display: grid; place-items: center;
-  font-size: 22px; flex-shrink: 0;
+  font-size: 60px;
 }
-.place-card__body { flex: 1; min-width: 0; }
-.place-card__name { font-weight: var(--fw-semi); color: var(--color-ink); }
+.place-card__cat {
+  position: absolute; left: var(--sp-md); top: var(--sp-md);
+  z-index: 1;
+}
+.place-card__cat .tag { box-shadow: 0 2px 8px rgba(0,0,0,0.16); font-weight: var(--fw-semi); }
+.place-card__body {
+  padding: var(--sp-lg);
+  display: flex; flex-direction: column; gap: 5px;
+  min-width: 0;
+}
+.place-card__name {
+  font-weight: var(--fw-black);
+  font-size: clamp(1rem, 1.05rem + 0.2vw, 1.2rem);
+  color: var(--color-heading);
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+.place-card__visited { font-size: 0.95em; }
+.place-card__metaline { font-size: 0.95rem; }
 .place-card__reason {
-  margin-top: 4px;
-  font-size: var(--fs-caption);
+  margin-top: 2px;
+  font-size: 0.95rem;
   color: var(--color-body);
-  border-left: 2px solid var(--color-accent);
-  padding-left: var(--sp-sm);
+  border-left: 3px solid var(--color-accent);
+  padding-left: calc(var(--sp-md) - 2px);
+  line-height: 1.55;
 }
-.place-card__meta { margin-top: 6px; font-size: var(--fs-caption); color: var(--color-muted); }
+.place-card__meta { font-size: 0.95rem; color: var(--color-muted); }
+  margin-top: 2px;
+  font-size: var(--fs-body);
+  color: var(--color-body);
+  border-left: 3px solid var(--color-accent);
+  padding-left: var(--sp-md);
+  line-height: 1.5;
+}
+.place-card__meta { font-size: var(--fs-caption); color: var(--color-muted); }
 
 
 /* --------------------------------------------------------------------------
@@ -63,12 +93,12 @@
 .star-value { margin-left: var(--sp-sm); font-size: var(--fs-caption); color: var(--color-muted); }
 .star-clear {
   margin-left: var(--sp-sm);
-  border: 1px solid var(--color-hairline);
+  border: var(--hairline-w) solid var(--color-hairline);
   background: var(--color-surface);
   color: var(--color-muted);
   font-size: var(--fs-caption);
   padding: 4px 10px;
-  border-radius: var(--r-pill);
+  border-radius: 0;
   cursor: pointer;
 }
 
@@ -77,9 +107,9 @@
    23. 리액션 선택 상태 / 카운트
 -------------------------------------------------------------------------- */
 .record-card__reactions button.is-selected {
-  border-color: var(--color-accent);
-  background: var(--color-accent);
-  color: var(--color-on-dark);
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
 }
 .reaction-count { font-variant-numeric: tabular-nums; }
 
@@ -87,20 +117,20 @@
 .msg-line { font-size: var(--fs-caption); color: var(--color-body); padding: 4px 0; }
 .msg-line strong { color: var(--color-ink); font-weight: var(--fw-semi); }
 .msg-toggle {
-  background: none; border: none; color: var(--color-primary);
+  background: none; border: none; color: var(--color-primary-deep);
   font-size: var(--fs-caption); font-weight: var(--fw-semi);
   padding: 4px 0; cursor: pointer;
 }
 .msg-input-row { display: flex; gap: var(--sp-sm); margin-top: var(--sp-sm); }
 .msg-input {
   flex: 1; font-family: inherit; font-size: var(--fs-caption);
-  border: 1px solid var(--color-hairline); border-radius: var(--r-pill);
+  border: var(--hairline-w) solid var(--color-hairline); border-radius: 0;
   padding: 8px 14px; color: var(--color-ink);
 }
 .msg-input:focus { outline: none; border-color: var(--color-primary); }
 .msg-send {
-  border: none; background: var(--color-primary); color: #fff;
-  border-radius: var(--r-pill); padding: 8px 16px; font-weight: var(--fw-semi);
+  border: none; background: var(--color-primary); color: var(--color-on-primary);
+  border-radius: 0; padding: 8px 16px; font-weight: var(--fw-bold);
   font-size: var(--fs-caption); cursor: pointer;
 }
 
@@ -112,7 +142,7 @@
   display: flex; gap: var(--sp-md); align-items: flex-start;
   padding: var(--sp-md) var(--sp-lg);
   background: var(--color-surface);
-  border: 1px solid var(--color-hairline);
+  border: var(--hairline-w) solid var(--color-hairline);
   border-radius: var(--r-lg);
   cursor: pointer;
 }
@@ -158,14 +188,14 @@
 .modal-panel input[type="text"],
 .modal-panel textarea {
   width: 100%; font-family: inherit; font-size: var(--fs-body);
-  border: 1px solid var(--color-hairline); border-radius: var(--r-sm);
+  border: var(--hairline-w) solid var(--color-hairline); border-radius: var(--r-sm);
   padding: 12px var(--sp-lg); color: var(--color-ink);
 }
 .modal-panel input:focus, .modal-panel textarea:focus { outline: none; border-color: var(--color-primary); }
 .modal-actions { display: flex; gap: var(--sp-md); margin-top: var(--sp-sm); }
-.modal-actions button { flex: 1; padding: 12px; border-radius: var(--r-pill); font-weight: var(--fw-semi); cursor: pointer; }
-.modal-actions .btn-primary { border: none; background: var(--color-primary); color: #fff; }
-.modal-actions .btn-ghost { border: 1px solid var(--color-hairline); background: transparent; color: var(--color-muted); }
+.modal-actions button { flex: 1; padding: 12px; border-radius: 0; font-weight: var(--fw-semi); cursor: pointer; }
+.modal-actions .btn-primary { border: none; background: var(--color-primary); color: var(--color-on-primary); font-weight: var(--fw-bold); }
+.modal-actions .btn-ghost { border: var(--hairline-w) solid var(--color-hairline); background: transparent; color: var(--color-muted); }
 
 .toast {
   position: fixed; left: 50%; bottom: calc(var(--nav-h) + 20px);
@@ -209,7 +239,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 /* Clowdery 워드마크 — Catread 폰트 */
 #global-header__logo {
   font-family: var(--font-brand);
-  color: var(--color-primary);
+  color: var(--color-primary-deep);
   font-size: 1.75rem;
   font-weight: 400;
   letter-spacing: 0.01em;
@@ -221,7 +251,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 /* 헤더 — 하드 경계 대신 부드러운 그림자 */
 #global-header {
   border-bottom: none;
-  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 14px rgba(38, 51, 46, 0.06);
 }
 
 /* Level 1 표면 — 화이트 카드 + 파우패드 핑크 소프트 보더 + 앰비언트 그림자 */
@@ -250,17 +280,17 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 }
 #completion-modal__title { font-family: var(--font-display); }
 
-/* 칩 & 태그 — 뉴트럴 그레이 배경 / 잉크 텍스트 (모노크롬) */
-.tag,
-.tag--mint,
-.tag--pink,
-.tag--accent { background: #F0F0F0; color: var(--color-ink); }
-.chip { border-color: rgba(0, 0, 0, 0.15); }
+/* 칩 & 태그 — 기본 태그는 브랜드 틴트 (카테고리 태그는 인라인 컬러가 우선) */
+.tag { background: var(--color-primary-tint); color: var(--color-primary-deep); }
+.tag--mint { background: #EDEDED; color: var(--color-ink); }
+.tag--pink { background: #EDEDED; color: var(--color-ink); }
+.tag--accent { background: #EDEDED; color: var(--color-ink); }
+.chip { border-color: rgba(0, 0, 0, 0.12); }
 
-/* 남은 웜톤 하드코드 뉴트럴화 */
-.record-card__reactions button:hover { border-color: var(--color-ink); background: #F2F2F2; }
-.noti-item.is-unread { background: #F7F7F7; }
-.map-marker--me { box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.15); }
+/* 리액션 호버 / 알림 미확인 — 브랜드 액센트 톤 */
+.record-card__reactions button:hover { border-color: var(--color-primary); background: var(--color-primary-tint); }
+.noti-item.is-unread { background: #F2F2F2; border-color: var(--color-accent); }
+.map-marker--me { box-shadow: 0 0 0 3px rgba(95, 180, 156, 0.30); }
 
 /* 입력 포커스 — 태비 오렌지 링 */
 #home__search-input:focus,
@@ -289,9 +319,9 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 #global-nav a { border-radius: var(--r-pill); margin: 6px 3px; transition: background var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard); }
 #global-nav a.is-current {
   background: var(--color-primary);
-  color: var(--color-on-dark);
+  color: var(--color-on-primary);
 }
-#global-nav a.is-current::before { background-color: var(--color-on-dark); }
+#global-nav a.is-current::before { background-color: var(--color-on-primary); }
 
 /* 지도 마커 — 미방문 딥오렌지 / 방문 브라이트오렌지 */
 .map-marker--pin { color: var(--color-primary); }

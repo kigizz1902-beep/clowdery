@@ -58,19 +58,29 @@
   function renderOnboarding() {
     let selected = me().catType || null;
     const list = $("#onboarding__cat-list");
-    $$(".onboarding__cat-item", list).forEach((li) => {
-      li.classList.toggle("is-active", li.dataset.cat === selected);
-      li.onclick = () => {
-        selected = li.dataset.cat;
-        $$(".onboarding__cat-item", list).forEach((x) => x.classList.remove("is-active"));
-        li.classList.add("is-active");
+    const items = $$(".onboarding__cat-item", list);
+    const pick = (li) => {
+      selected = li.dataset.cat;
+      items.forEach((x) => {
+        const on = x === li;
+        x.classList.toggle("is-active", on);
+        x.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+    };
+    items.forEach((li) => {
+      const on = li.dataset.cat === selected;
+      li.classList.toggle("is-active", on);
+      li.setAttribute("aria-pressed", on ? "true" : "false");
+      li.onclick = () => pick(li);
+      li.onkeydown = (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(li); }
       };
     });
     // .is-active 를 chip 스타일로 재사용
     list.classList.add("stack");
 
     $("#onboarding__confirm-btn").onclick = () => {
-      if (!selected) { toast("고양이를 한 마리 골라주세요"); return; }
+      if (!selected) { toast("고양이를 한 마리 골라주세요 🐱"); return; }
       const u = me();
       u.catType = selected;
       // 초기 관심사 = 고양이 가중치 카테고리 (사용자가 이후 수정 가능, §06)
@@ -91,10 +101,11 @@
     renderCategoryFilter();
     renderMap();
     renderPlaceList();
+    if ($("#home__toggle-map")) setHomeView("map", $("#home__toggle-map"));
 
     const input = $("#home__search-input");
-    if (USE_GOOGLE_MAPS()) {
-      setupGooglePlacesSearch();   // 구글 장소 자동완성
+    if (USE_KAKAO_MAPS()) {
+      setupKakaoPlacesSearch();    // 카카오 장소(키워드) 검색
     } else {
       input.onkeydown = (e) => {   // 폴백: 시드 장소 로컬 검색
         if (e.key === "Enter" && input.value.trim()) navigate("/search?q=" + encodeURIComponent(input.value.trim()));
@@ -110,7 +121,7 @@
     });
     btn.style.background = "var(--color-primary)"; btn.style.color = "#fff";
     $("#home__map").style.display = view === "map" ? "" : "none";
-    $("#home__place-list").style.display = view === "list" ? "flex" : "";
+    $("#home__place-list").style.display = view === "list" ? "" : "none";
   }
 
   function renderCategoryFilter() {
@@ -124,7 +135,7 @@
       return b;
     };
     nav.appendChild(mk("전체", null));
-    CATEGORIES.forEach((c) => nav.appendChild(mk(c, c)));
+    CATEGORIES.forEach((c) => nav.appendChild(mk(catEmoji(c) + " " + c, c)));
   }
 
   function visiblePlaces() {
@@ -137,78 +148,81 @@
   }
 
   function renderMap() {
-    if (USE_GOOGLE_MAPS()) { renderGoogleMap(); return; }
+    if (USE_KAKAO_MAPS()) { renderKakaoMap(); return; }
     renderPlaceholderMap();
   }
 
-  /* --- Google Maps 렌더 (F01) — 키 설정 시 --- */
-  let _gmap = null, _gmapMarkers = [];
-  function renderGoogleMap() {
+  /* --- Kakao Maps 렌더 (F01) — 키 설정 시 --- */
+  let _kmap = null, _kmapMarkers = [];
+  function renderKakaoMap() {
     const el = $("#home__map");
     el.classList.remove("is-empty");
-    loadGoogleMaps().then((google) => {
+    loadKakaoMaps().then((kakao) => {
       el.textContent = "";
-      if (!_gmap) {
-        _gmap = new google.maps.Map(el, {
-          center: state.myLocation, zoom: 14,
-          disableDefaultUI: true, zoomControl: true, clickableIcons: false,
-        });
+      const center = new kakao.maps.LatLng(state.myLocation.lat, state.myLocation.lng);
+      if (!_kmap) {
+        _kmap = new kakao.maps.Map(el, { center, level: 4 });
+        _kmap.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
       } else {
-        _gmap.setCenter(state.myLocation);
+        _kmap.setCenter(center);
+        _kmap.relayout(); // 숨김→표시 전환 시 타일 재계산
       }
-      _gmapMarkers.forEach((m) => m.setMap(null));
-      _gmapMarkers = [];
+      _kmapMarkers.forEach((m) => m.setMap(null));
+      _kmapMarkers = [];
 
-      // 내 위치
-      _gmapMarkers.push(new google.maps.Marker({
-        map: _gmap, position: state.myLocation, title: "내 위치",
-        icon: { path: google.maps.SymbolPath.CIRCLE, scale: 7, fillColor: "#111111", fillOpacity: 1, strokeColor: "#fff", strokeWeight: 3 },
+      // 내 위치 (블랙 도트)
+      const meDot = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(
+        `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><circle cx='10' cy='10' r='6' fill='#111111' stroke='#fff' stroke-width='3'/></svg>`);
+      _kmapMarkers.push(new kakao.maps.Marker({
+        map: _kmap, position: center, title: "내 위치",
+        image: new kakao.maps.MarkerImage(meDot, new kakao.maps.Size(20, 20), { offset: new kakao.maps.Point(10, 10) }),
       }));
 
-      // 장소 마커 — 미방문=블랙 핀 / 방문=그레이 발자국 (모노크롬)
+      // 장소 마커 — 미방문=블랙 핀 / 방문=그레이 핀 (모노크롬)
       visiblePlaces().forEach((p) => {
         const visited = isVisited(p.id);
         const color = visited ? "#666666" : "#111111";
         const pin = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(
           `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 40'><path d='M15 0C7 0 1 6 1 14c0 9 14 26 14 26s14-17 14-26C29 6 23 0 15 0z' fill='${color}'/><circle cx='15' cy='14' r='5.5' fill='#fff'/></svg>`);
-        const marker = new google.maps.Marker({
-          map: _gmap, position: p.geo, title: p.name,
-          icon: { url: pin, scaledSize: new google.maps.Size(30, 40), anchor: new google.maps.Point(15, 40),
-                  labelOrigin: new google.maps.Point(15, 14) },
-          label: { text: visited ? "🐾" : "", fontSize: "12px" },
+        const marker = new kakao.maps.Marker({
+          map: _kmap,
+          position: new kakao.maps.LatLng(p.geo.lat, p.geo.lng),
+          title: p.name,
+          image: new kakao.maps.MarkerImage(pin, new kakao.maps.Size(30, 40), { offset: new kakao.maps.Point(15, 40) }),
         });
-        marker.addListener("click", () => navigate("/place/" + p.id));
-        _gmapMarkers.push(marker);
+        kakao.maps.event.addListener(marker, "click", () => navigate("/place/" + p.id));
+        _kmapMarkers.push(marker);
       });
     }).catch(() => {
       // 키 오류·네트워크 실패 시 플레이스홀더로 폴백
-      _gmap = null;
+      _kmap = null;
       renderPlaceholderMap();
     });
   }
 
-  /* --- Google Places 자동완성 검색 (F: 지도 검색) --- */
+  /* --- Kakao 장소(키워드) 검색 (F: 지도 검색) --- */
   let _placesAttached = false;
-  function setupGooglePlacesSearch() {
+  function setupKakaoPlacesSearch() {
     if (_placesAttached) return;
-    loadGoogleMaps().then((google) => {
-      if (!google.maps.places) return;
+    loadKakaoMaps().then((kakao) => {
+      if (!kakao.maps.services) return;
       _placesAttached = true;
       const input = $("#home__search-input");
-      const ac = new google.maps.places.Autocomplete(input, {
-        fields: ["name", "geometry", "formatted_address", "types"],
-      });
-      ac.addListener("place_changed", () => {
-        const pl = ac.getPlace();
-        if (!pl.geometry) { toast("장소를 찾지 못했어요"); return; }
-        const loc = { lat: pl.geometry.location.lat(), lng: pl.geometry.location.lng() };
-        if (_gmap) {
-          _gmap.setCenter(loc); _gmap.setZoom(16);
-          const m = new google.maps.Marker({ map: _gmap, position: loc, title: pl.name || "" });
-          _gmapMarkers.push(m);
-        }
-        toast((pl.name || "검색 위치") + " 주변을 표시했어요");
-      });
+      const ps = new kakao.maps.services.Places();
+      input.onkeydown = (e) => {
+        if (e.key !== "Enter" || !input.value.trim()) return;
+        ps.keywordSearch(input.value.trim(), (data, status) => {
+          if (status !== kakao.maps.services.Status.OK || !data.length) { toast("장소를 찾지 못했어요"); return; }
+          const pl = data[0];
+          const loc = new kakao.maps.LatLng(+pl.y, +pl.x);
+          if (_kmap) {
+            _kmap.setCenter(loc); _kmap.setLevel(3);
+            const m = new kakao.maps.Marker({ map: _kmap, position: loc, title: pl.place_name || "" });
+            _kmapMarkers.push(m);
+          }
+          toast((pl.place_name || "검색 위치") + " 주변을 표시했어요");
+        });
+      };
     }).catch(() => {});
   }
 
@@ -220,14 +234,20 @@
     if (!places.length) { map.classList.add("is-empty"); return; }
     map.classList.remove("is-empty");
 
-    const lats = state.places.map((p) => p.geo.lat), lngs = state.places.map((p) => p.geo.lng);
+    const validPlaces = state.places.filter((p) => p.geo && typeof p.geo.lat === "number" && typeof p.geo.lng === "number");
+    const lats = validPlaces.map((p) => p.geo.lat);
+    const lngs = validPlaces.map((p) => p.geo.lng);
     const minLat = Math.min(...lats), maxLat = Math.max(...lats);
     const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
     const nx = (v, mn, mx) => (mx === mn ? 0.5 : (v - mn) / (mx - mn));
     const pos = (geo) => ({ x: 8 + nx(geo.lng, minLng, maxLng) * 84, y: 12 + (1 - nx(geo.lat, minLat, maxLat)) * 76 });
 
+    const centerGeo = state.myLocation && typeof state.myLocation.lat === "number" && typeof state.myLocation.lng === "number"
+      ? state.myLocation
+      : (validPlaces[0] ? validPlaces[0].geo : { lat: 37.5665, lng: 126.9910 });
+
     // 내 위치
-    const mePos = pos(state.myLocation);
+    const mePos = pos(centerGeo);
     const meDot = document.createElement("div");
     meDot.className = "map-marker map-marker--me";
     meDot.style.left = mePos.x + "%"; meDot.style.top = mePos.y + "%";
@@ -252,12 +272,13 @@
     b.className = "place-card";
     b.onclick = () => navigate("/place/" + p.id);
     const visited = isVisited(p.id);
+    const open = isOpenNow(p.hours);
     b.innerHTML = `
-      <div class="place-card__thumb"${p.photo ? ` style="background-image:url('${encodeURI(p.photo)}')"` : ""}>${p.photo ? "" : (visited ? "🐾" : "📍")}</div>
+      <div class="place-card__thumb"${p.photo ? ` style="background-image:url('${encodeURI(p.photo)}')"` : ""}>${p.photo ? "" : (visited ? "🐾" : catEmoji(p.category))}
+        <span class="place-card__cat">${catTag(p.category)}</span></div>
       <div class="place-card__body">
-        <div class="place-card__name">${esc(p.name)}</div>
-        <div class="meta-row"><span class="tag tag--${CAT_TAG_STYLE[p.category] || ""}">${esc(p.category)}</span>
-          <span class="faint" style="font-size:var(--fs-caption)">${walkMinutes(state.myLocation, p.geo)}분 · ${isOpenNow(p.hours) ? "영업 중" : "영업 종료"}</span></div>
+        <div class="place-card__name">${esc(p.name)}${visited ? ` <span class="place-card__visited" title="다녀온 곳">🐾</span>` : ""}</div>
+        <div class="place-card__metaline faint">도보 ${walkMinutes(state.myLocation, p.geo)}분 · <span style="color:${open ? "var(--color-ink)" : "var(--color-faint)"};font-weight:${open ? "600" : "400"}">${open ? "영업 중" : "영업 마감"}</span></div>
         ${reason ? `<div class="place-card__reason">${esc(reason)}</div>` : ""}
         <div class="place-card__meta">${esc(p.address)}</div>
       </div>`;
@@ -282,11 +303,12 @@
     state.recentlyViewed = [id, ...state.recentlyViewed.filter((x) => x !== id)].slice(0, 10);
     save();
 
-    $("#screen-place-detail__title").textContent = "📍 " + p.name;
-    $("#place-detail__meta").textContent = `${p.category} · ${p.address} · ${p.hours ? p.hours.open + "–" + p.hours.close + "시" : "시간 미정"}`;
+    const open = isOpenNow(p.hours);
+    $("#screen-place-detail__title").textContent = p.name;
+    $("#place-detail__meta").innerHTML = `${catTag(p.category)} <span class="muted">도보 ${walkMinutes(state.myLocation, p.geo)}분 · ${p.hours ? p.hours.open + "–" + p.hours.close + "시" : "시간 미정"} · <span style="color:${open ? "var(--color-ink)" : "var(--color-faint)"};font-weight:${open ? "600" : "400"}">${open ? "영업 중" : "영업 마감"}</span></span><br><span class="muted">${esc(p.address)}</span>`;
     $("#place-detail__hero").innerHTML = p.photo
       ? `<img src="${encodeURI(p.photo)}" alt="${esc(p.name)}" style="width:100%;height:100%;object-fit:cover;border-radius:var(--r-lg)">`
-      : `<span style="font-size:44px">${isVisited(p.id) ? "🐾" : "📍"}</span>`;
+      : `<span style="font-size:52px">${isVisited(p.id) ? "🐾" : catEmoji(p.category)}</span>`;
 
     // 추천 이유 (근거 우선, §09)
     $("#place-detail__reason").textContent = buildReason(p).text || "";
@@ -295,21 +317,21 @@
     const memberIds = new Set(myClowders().flatMap((c) => c.memberIds));
     const friendRecs = state.records.filter((r) => r.placeId === id && memberIds.has(r.userId) && r.userId !== ME);
     const fr = $("#place-detail__friend-records");
-    fr.innerHTML = `<h3 style="font-size:var(--fs-feature);font-weight:600;color:var(--color-ink);margin-bottom:var(--sp-md)">지인 발자국 ${friendRecs.length}</h3>`
-      + (friendRecs.length ? friendRecs.map(recordLine).join("") : `<p class="faint">아직 지인 기록이 없어요.</p>`);
+    fr.innerHTML = `<h3 style="font-size:var(--fs-feature);font-weight:600;color:var(--color-ink);margin-bottom:var(--sp-md)">🐾 지인 발자국 ${friendRecs.length}</h3>`
+      + (friendRecs.length ? friendRecs.map(recordLine).join("") : `<p class="faint">지인이 다녀가면 여기에 발자국이 남아요.</p>`);
 
     // 유사 장소 (같은 카테고리)
     const similar = state.places.filter((x) => x.category === p.category && x.id !== id).slice(0, 3);
     const sm = $("#place-detail__similar");
-    sm.innerHTML = `<h3 style="font-size:var(--fs-feature);font-weight:600;color:var(--color-ink);margin-bottom:var(--sp-md)">유사 장소</h3>`;
+    sm.innerHTML = `<h3 style="font-size:var(--fs-feature);font-weight:600;color:var(--color-ink);margin-bottom:var(--sp-md)">${catEmoji(p.category)} 비슷한 장소</h3>`;
     if (similar.length) similar.forEach((s) => sm.appendChild(placeCard(s)));
-    else sm.innerHTML += `<p class="faint">유사 장소가 없어요.</p>`;
+    else sm.innerHTML += `<p class="faint">비슷한 장소를 찾지 못했어요.</p>`;
 
     $("#place-detail__write-btn").onclick = () => navigate("/place/" + id + "/write");
     $("#place-detail__share-btn").onclick = () => {
       const mine = state.records.find((r) => r.userId === ME && r.placeId === id);
       if (mine) shareRecord(mine.id);
-      else toast("먼저 이 장소에 발자국을 남겨주세요");
+      else toast("발자국을 남기면 공유할 수 있어요");
     };
   }
 
@@ -343,7 +365,7 @@
     photoInput.onchange = () => {
       const f = photoInput.files[0];
       if (!f) return;
-      if (f.size > 10 * 1024 * 1024) { toast("10MB 이하 이미지만 올릴 수 있어요"); photoInput.value = ""; return; }
+      if (f.size > 10 * 1024 * 1024) { toast("사진은 10MB까지 올릴 수 있어요"); photoInput.value = ""; return; }
       const reader = new FileReader();
       reader.onload = () => {
         writeDraft.photo = reader.result;
@@ -351,7 +373,7 @@
         if (!img) { img = document.createElement("img"); img.className = "photo-preview"; photoField.appendChild(img); }
         img.src = reader.result;
       };
-      reader.onerror = () => toast("사진을 불러오지 못했어요. 텍스트로만 저장할 수 있어요");
+      reader.onerror = () => toast("사진을 불러오지 못했어요. 글만으로도 저장할 수 있어요");
       reader.readAsDataURL(f);
     };
 
@@ -456,7 +478,7 @@
 
   function saveRecord() {
     const oneLine = $("#write__oneline-input").value.trim();
-    if (oneLine.length < 1 || oneLine.length > 80) { toast("한줄평을 1~80자로 입력해주세요"); return; }
+    if (oneLine.length < 1 || oneLine.length > 80) { toast("한줄평을 1자에서 80자로 남겨주세요"); return; }
     const rec = {
       id: uid("r"), userId: ME, placeId: writeDraft.placeId,
       photo: writeDraft.photo, oneLine, rating: writeDraft.rating || null,
@@ -547,8 +569,8 @@
     banner.className = "muted";
     banner.style.marginBottom = "var(--sp-md)";
     banner.textContent = myRecordCount < 3
-      ? `아직 발자국이 ${myRecordCount}개예요. 고양이 취향과 위치로 먼저 추천해요.`
-      : `발자국 ${myRecordCount}개를 반영한 개인화 추천이에요.`;
+      ? `지금은 고양이 취향과 위치로 골랐어요. 발자국이 쌓일수록 더 똑똑해져요.`
+      : `내가 남긴 발자국 ${myRecordCount}개를 반영한 맞춤 추천이에요.`;
     list.appendChild(banner);
 
     ranked.slice(0, Math.max(3, 6)).forEach((s) => list.appendChild(placeCard(s.place, buildReason(s.place).text)));
@@ -589,7 +611,7 @@
     ul.innerHTML = "";
     const recs = feedRecords().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     if (!recs.length) {
-      ul.innerHTML = `<li class="faint" style="padding:var(--sp-xl);text-align:center;border:1px solid var(--color-hairline);border-radius:var(--r-lg);list-style:none">아직 기록이 없어요. 첫 발자국을 남겨볼까요?</li>`;
+      ul.innerHTML = emptyState("🐾", "첫 발자국을 남겨볼까요?", "마음에 든 곳에 발자국을 남기면 친구들과 여기서 나눠요.");
       return;
     }
     recs.forEach((r) => ul.appendChild(feedCard(r)));
@@ -683,7 +705,7 @@
       }
       const row = document.createElement("div"); row.className = "msg-input-row";
       const input = document.createElement("input");
-      input.className = "msg-input"; input.maxLength = 100; input.placeholder = "짧은 메시지 (100자)";
+      input.className = "msg-input"; input.maxLength = 100; input.placeholder = "짧은 메시지를 남겨보세요";
       const send = document.createElement("button"); send.className = "msg-send"; send.textContent = "보내기";
       const doSend = () => {
         const text = input.value.trim();
@@ -732,7 +754,7 @@
     const list = $("#my-records__list");
     list.innerHTML = "";
     if (!recs.length) {
-      list.innerHTML = `<li class="faint" style="padding:var(--sp-xl);text-align:center;border:1px solid var(--color-hairline);border-radius:var(--r-lg);list-style:none">아직 발자국이 없어요. 첫 장소를 발견해볼까요?</li>`;
+      list.innerHTML = emptyState("📖", "탐험 일지를 채워볼까요?", "다녀온 곳을 기록하면 여기에 차곡차곡 쌓여요.");
       return;
     }
     recs.forEach((r) => {
@@ -757,7 +779,7 @@
     const hits = state.places.filter((p) =>
       [p.name, p.category, p.address, ...(p.vibe || [])].join(" ").toLowerCase().includes(q.toLowerCase()));
     if (!hits.length) {
-      list.innerHTML = `<li class="faint" style="padding:var(--sp-xl);text-align:center;border:1px solid var(--color-hairline);border-radius:var(--r-lg);list-style:none">검색 결과가 없어요.</li>`;
+      list.innerHTML = emptyState("🔍", q ? "다른 이름으로 찾아볼까요?" : "무엇을 찾아볼까요?", "장소 이름, 카테고리, 지역으로 찾을 수 있어요.");
     } else {
       hits.forEach((p) => { const li = document.createElement("li"); li.appendChild(placeCard(p)); list.appendChild(li); });
     }
@@ -771,7 +793,7 @@
     const list = $("#clowders__list");
     list.innerHTML = "";
     const cs = myClowders();
-    if (!cs.length) list.innerHTML = `<li class="faint" style="padding:var(--sp-xl);text-align:center;border:1px solid var(--color-hairline);border-radius:var(--r-lg);list-style:none">아직 클라우더가 없어요. 새로 만들어보세요.</li>`;
+    if (!cs.length) list.innerHTML = emptyState("😺", "함께 다닐 그룹을 만들어볼까요?", "클라우더를 만들면 친구와 발자국을 나눌 수 있어요.");
     cs.forEach((c) => {
       const li = document.createElement("li");
       const b = document.createElement("button"); b.className = "place-card";
@@ -817,7 +839,7 @@
     feed.innerHTML = `<h3 style="font-size:var(--fs-feature);font-weight:600;color:var(--color-ink);margin-bottom:var(--sp-md)">클라우더 피드</h3>`;
     const recs = state.records.filter((r) => (r.clowderIds || []).includes(c.id)).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     if (recs.length) recs.forEach((r) => feed.appendChild(feedCard(r)));
-    else feed.innerHTML += `<p class="faint">아직 공유된 기록이 없어요.</p>`;
+    else feed.innerHTML += `<p class="faint">여기에 공유하면 멤버들과 발자국을 나눠요.</p>`;
 
     // 초대 (링크 생성) — F07
     $("#clowder-detail__invite-btn").onclick = () => {
@@ -826,7 +848,7 @@
     };
     // 설정 (관리자만 삭제) — §08
     $("#clowder-detail__settings-btn").onclick = () => {
-      if (c.ownerId !== ME) { toast("관리자만 설정할 수 있어요"); return; }
+      if (c.ownerId !== ME) { toast("클라우더를 만든 사람만 설정할 수 있어요"); return; }
       openModal("클라우더 설정", [], null, [
         { label: "클라우더 삭제", danger: true, onClick: () => {
           if (confirm(`'${c.name}'를 삭제할까요? 되돌릴 수 없어요.`)) {
@@ -843,7 +865,7 @@
      15. 알림 (F08) — 목록 / 읽음 / 배지
   ======================================================================== */
   const NOTI_TEXT = {
-    reactions:  (n) => `${userById(n.fromUserId).nickname}님이 회원님의 기록에 반응했어요`,
+    reactions:  (n) => `${userById(n.fromUserId).nickname}님이 내 발자국에 반응했어요`,
     messages:   (n) => `${userById(n.fromUserId).nickname}님이 메시지를 남겼어요`,
     newRecords: (n) => `${userById(n.fromUserId).nickname}님이 새 발자국을 남겼어요`,
   };
@@ -861,7 +883,7 @@
     const items = state.notifications
       .filter((n) => settings[n.type] !== false)
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    if (!items.length) { list.innerHTML = `<li class="faint" style="padding:var(--sp-xl);text-align:center;border:1px solid var(--color-hairline);border-radius:var(--r-lg);list-style:none">새 알림이 없어요.</li>`; return; }
+    if (!items.length) { list.innerHTML = emptyState("🔔", "새 소식을 기다리고 있어요", "친구들의 반응과 메시지가 오면 여기로 알려줄게요."); return; }
     items.forEach((n) => {
       const li = document.createElement("li");
       li.className = "noti-item" + (n.read ? "" : " is-unread");
@@ -910,9 +932,9 @@
   function openNotiSettings() {
     const s = me().notificationSettings;
     openModal("알림 설정", [], null, [
-      { label: (s.reactions ? "☑" : "☐") + " 리액션 알림",   ghost: true, onClick: () => { s.reactions = !s.reactions; save(); toast("변경했어요"); }, keepOpen: true },
-      { label: (s.messages ? "☑" : "☐") + " 메시지 알림",     ghost: true, onClick: () => { s.messages = !s.messages; save(); toast("변경했어요"); }, keepOpen: true },
-      { label: (s.newRecords ? "☑" : "☐") + " 새 기록 알림",  ghost: true, onClick: () => { s.newRecords = !s.newRecords; save(); toast("변경했어요"); }, keepOpen: true },
+      { label: (s.reactions ? "☑" : "☐") + " 리액션 알림",   ghost: true, onClick: () => { s.reactions = !s.reactions; save(); toast("바꿨어요"); }, keepOpen: true },
+      { label: (s.messages ? "☑" : "☐") + " 메시지 알림",     ghost: true, onClick: () => { s.messages = !s.messages; save(); toast("바꿨어요"); }, keepOpen: true },
+      { label: (s.newRecords ? "☑" : "☐") + " 새 기록 알림",  ghost: true, onClick: () => { s.newRecords = !s.newRecords; save(); toast("바꿨어요"); }, keepOpen: true },
     ]);
   }
 
@@ -964,7 +986,7 @@
           const text = await f.text();
           const data = JSON.parse(text);
           if (!data.records || !data.places) throw new Error("형식 오류");
-          state = data; save(); toast("불러오기 완료"); router();
+          state = data; save(); toast("불러왔어요"); router();
         } else {
           const XLSX = await loadSheetJS();
           const buf = await f.arrayBuffer();
@@ -972,11 +994,11 @@
           const recs = XLSX.utils.sheet_to_json(wb.Sheets["records"] || {});
           if (!recs.length) throw new Error("records 시트가 없어요");
           recs.forEach((r) => { r.clowderIds = r.clowderIds ? String(r.clowderIds).split(",") : []; });
-          state.records = recs; save(); toast("불러오기 완료"); router();
+          state.records = recs; save(); toast("불러왔어요"); router();
         }
       } catch (e) {
         state = JSON.parse(snapshot); // 오류 시 원본 복구
-        toast("불러오기 실패 — 기존 데이터를 지켰어요");
+        toast("불러오지 못했어요. 기존 데이터는 그대로 뒀어요");
       }
     };
     input.click();
@@ -998,7 +1020,7 @@
     $("#share-landing__photo").innerHTML = r?.photo
       ? `<img src="${r.photo}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:var(--r-lg)">`
       : `<span style="font-size:44px">🐾</span>`;
-    $("#share-landing__oneline").textContent = r ? r.oneLine : "기록을 찾을 수 없어요";
+    $("#share-landing__oneline").textContent = r ? r.oneLine : "기록을 찾지 못했어요";
     $("#share-landing__place").textContent = p ? `${p.name} · ${p.category}` : "";
     $("#share-landing__open-app").onclick = () => navigate("/");
   }

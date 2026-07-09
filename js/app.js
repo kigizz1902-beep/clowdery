@@ -20,6 +20,7 @@
     // 스키마 보강 (구버전 대비)
     state.savedPlaces = state.savedPlaces || [];
     state.recentlyViewed = state.recentlyViewed || [];
+    state.myLocation = state.myLocation || { lat: 37.5665, lng: 126.9910 };
     // 장소 예시 이미지 backfill (신규 필드 — 기존 저장 상태에도 반영)
     state.places.forEach((p) => { if (PLACE_PHOTOS[p.id]) p.photo = PLACE_PHOTOS[p.id]; });
     if (!loaded) save();   // 첫 진입 시 시드 데이터 영속화 (데모 안정화)

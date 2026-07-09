@@ -6,6 +6,9 @@
   <meta name="description" content="Clowdery — 고양이처럼 동네를 탐험하고, 다녀온 곳에 발자국을 남겨 친구들과 공유하는 로컬 경험 플랫폼" />
   <meta name="theme-color" content="#33206A" />
   <title>Clowdery · Discover like a cat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gamja+Flower&family=Noto+Sans&display=swap" rel="stylesheet" />
   <!-- 스타일 (순서대로: 토큰/베이스 → 컴포넌트 → 테마 → 반응형) -->
   <link rel="stylesheet" href="css/base.css" />
   <link rel="stylesheet" href="css/components.css" />
@@ -59,17 +62,47 @@
     ===================================================================== -->
     <section id="screen-onboarding" aria-labelledby="screen-onboarding__title">
       <header class="screen__header">
-        <h2 id="screen-onboarding__title">🐱 첫 탐험을 함께할 고양이를 골라보세요</h2>
-        <p class="screen__subtitle">고양이는 첫 추천의 방향을 잡아줘요. 활동이 쌓이면 취향에 맞게 달라집니다.</p>
+        <h2 id="screen-onboarding__title">함께 탐험할 고양이를 골라주세요 🐱</h2>
+        <p class="screen__subtitle">고양이가 첫 추천을 골라줘요. 발자국이 쌓일수록 취향에 맞게 더 똑똑해져요.</p>
       </header>
 
       <!-- 5종 고양이 선택 카드 (치즈/턱시도/삼색/러시안블루/코숏) -->
       <ul id="onboarding__cat-list">
-        <li class="onboarding__cat-item" data-cat="cheese">🧀 치즈 고양이 — 새로운 맛을 먼저 발견하는 타입 🍽️</li>
-        <li class="onboarding__cat-item" data-cat="tuxedo">🎩 턱시도 고양이 — 문화 공간을 놓치지 않는 타입 🎭</li>
-        <li class="onboarding__cat-item" data-cat="calico">🎨 삼색 고양이 — 수집하고 구경하는 걸 좋아하는 타입 🛍️</li>
-        <li class="onboarding__cat-item" data-cat="russianblue">💙 러시안블루 — 조용한 장소를 오래 기억하는 타입 ☕</li>
-        <li class="onboarding__cat-item" data-cat="koshort">🐈 코리안숏헤어 — 동네 구석구석 움직이는 타입 🌳</li>
+        <li class="onboarding__cat-item" data-cat="cheese" tabindex="0" role="button" aria-pressed="false">
+          <span class="onboarding__cat-emoji">🧀</span>
+          <span class="onboarding__cat-text">
+            <span class="onboarding__cat-name">치즈 고양이</span>
+            <span class="onboarding__cat-desc">새로운 맛집을 먼저 찾는 타입</span>
+          </span>
+        </li>
+        <li class="onboarding__cat-item" data-cat="tuxedo" tabindex="0" role="button" aria-pressed="false">
+          <span class="onboarding__cat-emoji">🎩</span>
+          <span class="onboarding__cat-text">
+            <span class="onboarding__cat-name">턱시도 고양이</span>
+            <span class="onboarding__cat-desc">문화 공간을 놓치지 않는 타입</span>
+          </span>
+        </li>
+        <li class="onboarding__cat-item" data-cat="calico" tabindex="0" role="button" aria-pressed="false">
+          <span class="onboarding__cat-emoji">🎨</span>
+          <span class="onboarding__cat-text">
+            <span class="onboarding__cat-name">삼색 고양이</span>
+            <span class="onboarding__cat-desc">구경하고 수집하는 타입</span>
+          </span>
+        </li>
+        <li class="onboarding__cat-item" data-cat="russianblue" tabindex="0" role="button" aria-pressed="false">
+          <span class="onboarding__cat-emoji">💙</span>
+          <span class="onboarding__cat-text">
+            <span class="onboarding__cat-name">러시안블루</span>
+            <span class="onboarding__cat-desc">조용한 곳을 오래 기억하는 타입</span>
+          </span>
+        </li>
+        <li class="onboarding__cat-item" data-cat="koshort" tabindex="0" role="button" aria-pressed="false">
+          <span class="onboarding__cat-emoji">🐈</span>
+          <span class="onboarding__cat-text">
+            <span class="onboarding__cat-name">코리안숏헤어</span>
+            <span class="onboarding__cat-desc">동네 구석구석 누비는 타입</span>
+          </span>
+        </li>
       </ul>
 
       <footer id="onboarding__footer">
@@ -87,7 +120,7 @@
 
       <!-- 검색 + 카테고리 필터 바 -->
       <div id="home__search-bar">
-        <input type="search" id="home__search-input" placeholder="장소·지역 검색" />
+        <input type="search" id="home__search-input" placeholder="🔍 어디로 탐험 가볼까요? (장소·지역)" />
       </div>
       <nav id="home__category-filter" aria-label="카테고리 필터">
         <!-- 카테고리 칩: 맛집/카페/전시/팝업/쇼핑/야외 등 -->
@@ -161,7 +194,7 @@
 
         <!-- 한줄평 (필수, 1~80자) -->
         <div id="write__oneline-field">
-          <textarea id="write__oneline-input" maxlength="80" placeholder="한줄평 (필수)"></textarea>
+          <textarea id="write__oneline-input" maxlength="80" placeholder="이곳은 어땠나요? 한 줄로 남겨주세요"></textarea>
         </div>
 
         <!-- 별점 (선택, 0.5 단위 1~5) -->
@@ -380,9 +413,11 @@
   ========================================================================= -->
   <div id="completion-modal" role="dialog" aria-modal="true" aria-labelledby="completion-modal__title" hidden>
     <div id="completion-modal__panel">
+      <div id="completion-modal__emoji" aria-hidden="true">🐾</div>
       <h2 id="completion-modal__title">새로운 발자국이 생겼다냥!</h2>
-      <button type="button" id="completion-modal__share-btn">외부로 공유하기</button>
-      <button type="button" id="completion-modal__skip-btn">건너뛰기</button>
+      <p id="completion-modal__sub">친구들에게도 이 발자국을 보여줄까요?</p>
+      <button type="button" id="completion-modal__share-btn">공유 링크 만들기</button>
+      <button type="button" id="completion-modal__skip-btn">나중에 할게요</button>
     </div>
   </div>
 
